@@ -1,24 +1,18 @@
 ---
-title             : "Week 11 Homework"
-shorttitle        : "Week 11"
+title             : "Logistic Regression"
 
 author: 
   - name          : "Pratik Chaudhari"
     affiliation   : ""
-    corresponding : yes    # Define only one corresponding author
-    address       : "326 Market Street, Harrisburg, PA 17101"
-    email         : "pchaudhari@my.harrisburgu.edu"
+    corresponding : yes   
+    address       : "Burlington, MA"
+    
 
 affiliation:
   - id            : "247910"
     institution   : "Harrisburg University of Science and Technology"
 
-authornote: |
-  This document contains the Week 11 HW scripts.
 
-abstract: |
-
-  
 keywords          : ""
 wordcount         : "X"
 
