@@ -5,17 +5,7 @@ author:
   - name          : "Pratik Chaudhari"
     affiliation   : ""
     corresponding : yes    # Define only one corresponding author
-    address       : "326 Market Street, Harrisburg, PA 17101"
-    email         : "pchaudhari@my.harrisburgu.edu"
-
-affiliation:
-  - id            : "247910"
-    institution   : "Harrisburg University of Science and Technology"
-
-authornote: |
-  This document contains the summary of Fields book Chapter 4 and hw6 scripts.
-
-abstract: |
+    address       : "Burlington, MA"
 
   
 keywords          : "Assumtions, linearity, Normal Distribution, Homogeneity"
