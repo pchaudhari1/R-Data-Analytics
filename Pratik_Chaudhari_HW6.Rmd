@@ -1,0 +1,243 @@
+---
+title             : "Chapter 05 Reading and hw6"
+shorttitle        : "Reading and hw6"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    address       : "326 Market Street, Harrisburg, PA 17101"
+    email         : "pchaudhari@my.harrisburgu.edu"
+
+affiliation:
+  - id            : "247910"
+    institution   : "Harrisburg University of Science and Technology"
+
+authornote: |
+  This document contains the summary of Fields book Chapter 4 and hw6 scripts.
+
+abstract: |
+
+  
+keywords          : "Assumtions, linearity, Normal Distribution, Homogeneity"
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+```{r setup, include = FALSE}
+options(scipen=999)
+packages <- c('papaja','dplyr','ggplot2','gridExtra','MVN','mvnormtest','normwhn.test','normtest','psych')
+for(p in packages){
+  if(!require(p,character.only = TRUE)) install.packages(p, dependencies = TRUE)
+  suppressMessages(library(p,character.only = TRUE))
+}
+library(gridExtra)
+library(MVN)
+library(mvnormtest)
+library(psych)
+library(car)
+library(normwhn.test)
+```
+
+```{r wordcount, echo=FALSE}
+# devtools::install_github("benmarwick/wordcountaddin", type = "source", dependencies = TRUE)
+word_count <- suppressMessages(toString(wordcountaddin::word_count("Pratik_Chaudhari_HW6.Rmd")))
+#print(paste("Word count:",word_count))
+```
+
+The week 06 homework R scripts writing contains `r word_count` words.
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+# Summary
+Certain assumptions must be true for data to be parametric. these assumptions are: Normality, Homogeneity, Interval data and Independence. We can plot histogram to check data distribution visually and draw a normal curve using stat_function(). We can use describe() function to explore variable distribution or stat.desc() function which produces skew and kurtosis values divided by the standard errors. Positive skew means low scores and distribution and negative in vice-versa.  Positive kurtosis indicates pointy and heavy-tailed distribution whereas negative means flat and lightly-tailed distribution. These tests should be used for small samples.
+
+To test a normal distribution, we can use Shapiro-Wilk test, Jarque-Bera test which generates p-value. if p-value less than .05 it is not normally distributed.
+
+Levene test can be used to test homogeneity if variance is uniform throughout the groups. Homogeneity is an assumption that scores are spread almost equally in different groups or at different points on the predictor variable. if for Levene test (Pr(>F) less than .05 then variances are significantly different else homogeneity of variance is assumed. 
+
+If the dat contains outliers we can handle them by either removing the case, transforming the data or changing the score. When data is not normal and has unequal variances we can transform data by methods like: Log transformation, Square root transformation, reciprocal transformation and reverse score transformation. [@field2012discovering]
+
+
+# Lab questions
+```{r readcsv, echo=FALSE}
+hw6<- read.csv("/Users/one/Desktop/Principles-of-Analy-500/Assignments/HW-6/Lab3.csv", header = TRUE)
+```
+
+```{r replacewithNA, echo=FALSE}
+hw6$Gender[hw6$Gender==" "] = NA
+hw6$Gender[hw6$Gender==0] = NA
+hw6$Gender[hw6$Gender==3] = NA
+hw6$Gender[hw6$Gender=="MaleFemale"] = NA
+hw6$Gender[hw6$Gender=="FemaleMale"] = NA
+hw6$Class[hw6$Class > 4.0] = NA
+hw6$Class[hw6$Class < 1.0] = NA
+hw6$Class[hw6$Class==1.4] = NA
+hw6$Class[hw6$Class==1.3] = NA
+```
+
+```{r preprocessing, echo=FALSE}
+for(i in 3:ncol(hw6)){
+  hw6[is.na(hw6[,i]), i] <- mean(data.matrix(hw6[,i]), na.rm = TRUE)
+}
+hw6<-na.omit(hw6, cols=c("Gender"))
+hw6<-na.omit(hw6, cols=c("Class"))
+hw6$Gender <- factor(hw6$Gender)
+hw6$Class <- factor(hw6$Class)
+```
+
+```{r gender, echo=FALSE}
+str(hw6)
+```
+
+## Mahalanobis Distance
+There are a few outliers in the data tht are been amrked as TRUE. There are 7 outliers and the cutoff score is 9.34
+```{r mahalanobis_distance, echo=FALSE}
+df <- hw6[, -c(1,2)]
+maha_dist <- mahalanobis(df[, 1:3], colMeans(df[, 1:3]), cov(df[, 1:3]))
+df$maha_dist <- round(maha_dist, 2)
+```
+
+
+```{r mahaoutliers, echo=FALSE}
+# Mahalanobis Outliers - threshold set to 10
+df$outlier_maha <- "FALSE"
+df$outlier_maha[df$maha_dist > 10] <- "TRUE"
+```
+
+```{r mahalanobis_score, echo=FALSE}
+# finding mahalanobis score
+predictors <- dplyr::select_if(hw6, is.numeric)
+mahal = mahalanobis(predictors, 
+                    colMeans(predictors, na.rm = TRUE),
+                    cov(predictors, use="pairwise.complete.obs"))
+
+# find the cut off
+cutoff = qchisq(.975, ncol(predictors)) 
+cutoff
+ncol(predictors)
+
+## figure out who's bad
+summary(mahal < cutoff)
+no_outlier = subset(hw6, mahal < cutoff)
+```
+
+```{r view_mahal, echo=FALSE}
+mahal_df <- data.frame(mahal)
+mahal_order <- mahal_df[order(-mahal_df$mahal),]
+head(mahal_order,30)
+```
+
+```{r plot_mahal, echo=FALSE}
+hw6$mahal <- mahal
+ggplot(hw6, aes(x=mahal)) + geom_density()
+```
+
+```{r density_no_outlier, echo=FALSE}
+p1 <- ggplot(no_outlier, aes(x=Q1)) + geom_density()
+p2 <- ggplot(no_outlier, aes(x=Q2)) + geom_density()
+p3 <- ggplot(no_outlier, aes(x=Q3)) + geom_density()
+
+grid.arrange(p1, p2, p3, nrow=3)
+```
+
+## Linearity
+The linearity assumption has been met. From the Q-Q plot the doesnt look normally distributed.
+```{r linearity, echo=FALSE}
+plot(no_outlier$Q1~no_outlier$Q2 + no_outlier$Q3)
+mod<-lm(no_outlier$Q1~no_outlier$Q2 + no_outlier$Q3)
+summary(mod)
+abline(mod)
+par(mfrow=c(2,2))
+plot(mod)
+```
+
+## Normal Distribution
+The tests suggests that the data is not normally disributed based on p-value for Shapiro test and Jarque-Bera test.
+```{r correlationsymnum, echo=FALSE}
+correlations = cor(no_outlier[, -c(1,2)], use = "pairwise.complete.obs")
+correlations
+symnum(correlations)
+```
+
+```{r mvnormtest, echo=FALSE}
+cleaned_predictors <- no_outlier[, -c(1,2)]
+df1 <- t(cleaned_predictors)
+mshapiro.test(df1)
+```
+
+```{r normtest, echo=FALSE}
+df2 <- cleaned_predictors
+jb.norm.test(df2)
+```
+
+```{r mvn, echo=FALSE}
+mvn(cleaned_predictors,cov=TRUE)
+```
+
+
+## Additivity
+Additivity assumption is valid. They are almost parallel but overall the dataset is good.
+```{r additivity, echo=FALSE}
+library(corrplot)
+corrplot(correlations, method="pie");
+corrplot(correlations, method="number");
+corrplot(correlations, method="shade")
+```
+
+
+## Homogeneity
+From the bartlett test we can see the p-value < 0.00000000000000022 which implies we reject null hypothesis and do not assume homogeneity of variances.
+```{r homogeneity, echo=FALSE}
+bartlett.test(list(no_outlier$Q1, no_outlier$Q2, no_outlier$Q3))
+boxplot(list(no_outlier$Q1, no_outlier$Q2, no_outlier$Q3))
+model<- lm(no_outlier$Q1~no_outlier$Q2 + no_outlier$Q3)
+plot(model)
+summary(model)
+plot(no_outlier$Gender~no_outlier$Q1+no_outlier$Q2+ no_outlier$Q3)
+```
+
+```{r homo_good, echo=FALSE}
+library(car)
+leveneTest(no_outlier$Q2, no_outlier$Q1)
+leveneTest(no_outlier$Q2, no_outlier$Q1, center = mean)
+```
+
+```{r homo_bad, echo=FALSE}
+library(car)
+leveneTest(no_outlier$Q3, no_outlier$Q1)
+leveneTest(no_outlier$Q3, no_outlier$Q1, center = mean)
+```
+
+## Data analysis
+We used `r cite_r("r-references.bib")` for all our analyses.
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
