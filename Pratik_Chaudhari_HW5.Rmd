@@ -1,0 +1,234 @@
+---
+title             : "Week 05 Reading and Lab3"
+shorttitle        : "Reading and Lab3"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    address       : "326 Market Street, Harrisburg, PA 17101"
+    email         : "pchaudhari@my.harrisburgu.edu"
+
+affiliation:
+  - id            : "247910"
+    institution   : "Harrisburg University of Science and Technology"
+
+authornote: |
+  This document contains the summary of Fields book Chapter 4 and Lab3 scripts.
+
+abstract: |
+
+  
+keywords          : "graphs, ggplot2, scatterplot, histogram, geom"
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+```{r setup, include = FALSE}
+library(papaja)
+library(knitr)
+library(citr)
+library(matrixStats)
+library(plyr)
+library(ggplot2)
+```
+
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+# Summary
+Graphs are useful at looking at our data and how the data can be useful before we start actual analysis. A good graph should show the data without any distortions, making larger data sets coherent, comparable pieces of data and presenting the data with minimum amount of ink.
+
+The two ways of plotting a graph with ggplot are by gplot() and and ggplot() functions. A graph consists of objects like text, data point, lines, bars, pictures, etc. This visual object are called geoms. There are different geoms functions like: geom_bar(), geom_line(), geom_histogram(), geom_boxplot(), etc.  We can color a particular variable we want in our graph. ggplot() command can be used as:
+myGraph <- ggplot(myData, aes(variable for x axis, variable for y axis)).
+We can add colored points by adding geom_point(color =”Blue”) to myGraph.
+
+To void graph becoming cluttered we can use positioning tools like position, faceting. We can save the graph using ggsave(filename).
+
+A scatterplot plots a score on on a variable against its score on another variable. A scatterplot shows the relationship and type of relationship between the variables. We can use scatterplot to see any outliers.
+Scatter <- ggplot(MyData, aes(variable, variable))
+A Geom_smooth() function can be used for adding a "smoother"" (regression line) to our scatterplot.
+We can also create a grouped scatterplot to see relation between two different groups.
+
+A histogram can be used to show the frequency distribution of our data. A boxplot has median at centre surrounded by box at top and bottom which is also the interquartile range. Each box has a whisker extending to one and a half time the interquartile range. A density plot is similar to a histogram except the distribution is smooth and can be plotted using geom_density(). The most common way to display means is by plotting a Bar chart. Stat_summary summarises the functions specification.[@field2012discovering]
+
+
+
+
+# Lab questions
+
+```{r readcsv, echo=FALSE}
+Lab3<-read.csv("/Users/one/Desktop/Principles-of-Analy-500/Assignments/HW-5/Lab3 (1).csv", header=TRUE)
+```
+
+The dataset contains 350 rows with two categorical variables Gender and Class and three numerical variables Q1, Q2 and Q3 where Gender is the gender of student, Class Level (freshman, sophomore, junior, senior) represented as 1,2,3 and 4 and Q1, Q2 and Q3 are three types of questions asked to the questions. The dataset is not 100% accurate and contain a lot of NAs as well as missing fields in Gender and Class. We analyze the data and see how we can fix the data and perform our analysis.
+
+```{r dataexplore, echo=FALSE}
+str(Lab3)
+head(Lab3)
+summary(Lab3)
+```
+
+```{r gender, echo=FALSE}
+Gender = unique(Lab3$Gender)
+unique(Gender)
+```
+
+
+# Data Accuracy
+We explore the dataset and check its accuracy using different the measures of variability like: 1) range, 2) interquartile range (IQR), 3) variance, 4) standard deviation, 5) mean.
+```{r datavariability_1, echo=FALSE}
+apply(Lab3[,c(3:5)], 2, mean)
+apply(Lab3[,c(3:5)], 2, sd)
+apply(Lab3[,c(3:5)], 2, var)
+apply(Lab3[,c(3:5)], 2, max) - apply(Lab3[,c(3:5)], 2, min)
+#apply(Lab3[,c(3:5)], 2, IQR)
+apply(Lab3[,c(3:5)], 2, max)
+apply(Lab3[,c(3:5)], 2, min)
+```
+
+The data accuracy scripts do not generate an output since the dataset contains a lot on NAs. We need to remove NAs so as to get the desired output.
+
+# Missing Data
+There are many methods to deal with the NAs. For this dataset i replace the NAs with the column mean. But prior to that I replace irregular fields in Gender (0,3, MaleFemale, FemaleMale), Class (Value greater than 4 and less than 1 and floating values) with NAs as this fields do not make any sense, are of no use and will be a hindrance in generating the output.
+
+```{r replacewithNA, echo=FALSE}
+Lab3$Q1[Lab3$Q1>7]=NA
+Lab3$Q1[Lab3$Q1<1]=NA
+Lab3$Q2[Lab3$Q2>7]=NA
+Lab3$Q2[Lab3$Q2<1]=NA
+Lab3$Q3[Lab3$Q3>7]=NA
+Lab3$Q3[Lab3$Q3<1]=NA
+Lab3$Gender[Lab3$Gender==" "] = NA
+Lab3$Gender[Lab3$Gender==0] = NA
+Lab3$Gender[Lab3$Gender==3] = NA
+Lab3$Gender[Lab3$Gender=="MaleFemale"] = NA
+Lab3$Gender[Lab3$Gender=="FemaleMale"] = NA
+Lab3$Class[Lab3$Class>4] = NA
+Lab3$Class[Lab3$Class<1] = NA
+Lab3$Class[Lab3$Class==1.4] = NA
+Lab3$Class[Lab3$Class==1.3] = NA
+```
+
+```{r replaceNA, echo=FALSE}
+for(i in 3:ncol(Lab3)){        
+  Lab3[is.na(Lab3[,i]), i] <- mean(data.matrix(Lab3[,i]), na.rm = TRUE)
+}
+summary(Lab3)
+str(Lab3)
+Lab3<-na.omit(Lab3, cols=c("Gender"))
+Lab3<-na.omit(Lab3, cols=c("Class"))
+summary(Lab3)
+str(Lab3)
+```
+
+
+# Factor
+We need to make sure that all the categorical variables are factored using the R command "factor ()". It tells R to treat the factored variables as categorical variables rather than numerical variables.
+```{r datafactor, echo=FALSE}
+Lab3$Gender <- factor(Lab3$Gender)
+Lab3$Class <- factor(Lab3$Class)
+str(Lab3)
+```
+
+Lets see if there are any NAs in our data.
+
+```{r checknas, echo=FALSE}
+check.na <- data.frame(is.na(Lab3))
+table(check.na$Gender)
+table(check.na$Class)
+table(check.na$Q1)
+table(check.na$Q2)
+table(check.na$Q3)
+```
+Now we have the NAs replaced by the variable average we try to perform different measures again to test the accuracy.
+
+```{r datavariability_2, echo=FALSE}
+cbind(colMeans(Lab3[,c(3:5)])) -> q.mean
+library(matrixStats)
+library(plyr)
+cbind(apply(Lab3[,c(3:5)], 2, sd)) -> q.sd
+cbind(apply(Lab3[,c(3:5)], 2, var)) -> q.var
+cbind(apply(Lab3[,c(3:5)], 2, max) - apply(Lab3[,c(3:5)], 2, min)) -> q.range
+cbind(apply(Lab3[,c(3:5)], 2, IQR)) -> q.iqr
+cbind(apply(Lab3[,c(3:5)], 2, max)) -> q.max
+cbind(apply(Lab3[,c(3:5)], 2, min)) -> q.min
+q.mean
+q.sd
+q.var
+q.range
+q.iqr
+q.max
+q.min
+```
+
+The following values are generated: mean, standard deviation, variance, range, IQR, max, min for the three numeric columns.
+
+# Outliers
+We plot boxplots to see how our data is spread and see if there are any outliers.
+
+```{r data_boxplot}
+library(ggplot2)
+
+p1.1 <- ggplot(Lab3, aes(x = Gender, y = Q1, color = Gender)) +
+  geom_boxplot()
+p1.1
+p1.2<-ggplot(Lab3, aes(x = Class, y = Q1, color = Class)) +
+  geom_boxplot()
+p1.2
+p1.3 <- ggplot(Lab3, aes(x = Q1))
+p1.3 + geom_histogram(binwidth = 0.2)
+
+p2.1 <- ggplot(Lab3, aes(x = Gender, y = Q2, color = Gender)) +
+  geom_boxplot()
+p2.1
+p2.2<-ggplot(Lab3, aes(x = Class, y = Q2, color = Class)) +
+  geom_boxplot()
+p2.2
+p2.3 <- ggplot(Lab3, aes(x = Q2))
+p2.3 + geom_histogram(binwidth = 0.2)
+
+p3.1 <- ggplot(Lab3, aes(x = Gender, y = Q3, color = Gender)) +
+  geom_boxplot()
+p3.1
+p3.2<-ggplot(Lab3, aes(x = Class, y = Q3, color = Class)) +
+  geom_boxplot()
+p3.2
+p2.3 <- ggplot(Lab3, aes(x = Q3))
+p2.3 + geom_histogram(binwidth = 0.2)
+```
+
+
+# R Packages
+This document used `r cite_r("r-references.bib")` for R scripts and summary.
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
