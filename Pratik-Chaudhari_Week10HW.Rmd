@@ -1,0 +1,148 @@
+---
+title             : "Week 10 Reading"
+shorttitle        : "Correlation and Regression"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    address       : "326 Market Street, Harrisburg, PA 17101"
+    email         : "pchaudhari@my.harrisburgu.edu"
+
+affiliation:
+  - id            : "247910"
+    institution   : "Harrisburg University of Science and Technology"
+
+authornote: |
+  This document contains the summary of Fields book Chapter 6 and 7.
+
+abstract: |
+
+  
+keywords          : ""
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+```{r setup, include = FALSE}
+library(papaja)
+library(knitr)
+library(citr)
+```
+
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+# Summary
+# Correlation
+
+## Covariance, Standardization, Correlation Coefficient and Confidence Intervals
+Covariance explains the relationship between two variables which is the averaged sum of combined deviation and is described as: Variance(s^2) = summation(xi-x)^2/N-1, where x is sample mean and s is data point and N is number of observations. A deviation is the difference between observed values and mean of relevant variables. A cross-product deviation is obtained when we multiply one variable???s deviation with deviation of another variable. A correlation coefficient is the product of SD(sx) of 1st variable and SD(sy) of another variable and is defined as r= covxy/sxsy. Correlation coefficient can help test hypothesis that a correlation is different from zero by using a t-statistic with N-2 DF. tr = r*sqrt(N-2)/ sqrt(1-r2).
+A correlation coefficient has a value between -1 and +1 where +1 is a positive relationship, -1 a negative relationship and 0 means no relationship. Confidence Interval tells the possible value that can lie within an interval in the population and is calculated as Xbar -+ (z*SE).
+
+## Bivariate correlation  
+A Bivariate correlation is a correlation between two variables. Once a data is loaded in a data frame, we can use following three functions in R to calculate correlation coefficient:
+cor(): cor(x,y, use = "string", method = "correlation type"), where x and y are numeric variables, use specifies handling missing values and method is type of method to use.
+rcorr(): rcorr(x,y, type = "correlation type")
+cor.test(): Can be used only on pairs of variables and is calculated as
+cor.test(x, y, alternative = "string", method = "correlation type", conf. level = 0.95)
+
+Pearson???s coefficient requires both data and variables to be normally distributed with an exception that one variable can be a categorical, but it has only two categories not measured at interval level. Correlation coefficient squared R2 is the amount of variance in a variable that is shared by another variable. A Spearman???s correlation coefficient is used when certain assumptions are violated such as the data is not normally distributed and is used by first ranking the data and then using Pearson???s equation. Kendall???s tau is used when data size is small and has large number of tied ranks i.e. multiple scores have same ranks. Bootstrapping correlations can also be used for data that do not meet assumptions: object<-boot(data, function, replications), where data is data frame, function is a function used, replications specifies how many bootstrap samples we want to take. Point-biserial correlation (rpb) is used when one of the variables is discrete dichotomy and biserial correlation is used when one variable is continuous dichotomy where dichotomous refers to a variable which is categorical with only two categories.
+
+## Partial Correlation
+A partial correlation is a relation between two variables in which another variables effect is constant on both variables. pcor(c("var1", "var2", "control1", "control2" etc.), var(dataframe))
+A semi-partial correlation is a relation between two variables in which another variables effect is controlled on only one variable
+
+## Comparing Correlation
+We calculate z-score of the difference between correlations when comparing independent rs and t-score when comparing dependent rs.
+
+## Reporting correlation coefficients
+When reporting correlation coefficients, we need to specify how big they are and its significance value. We need to follow APA conventions such as no zero before the decimal point, up to 2 decimal places, mention if using one-tailed probability, and representing each correlation coefficient by a different letter.[@field2012discovering]
+
+## Reporting correlation coefficients
+When reporting correlation coefficients, we need to specify how big they are and its significance value. We need to follow APA conventions such as no zero before the decimal point, up to 2 decimal places, mention if using one-tailed probability, and representing each correlation coefficient by a different letter.
+
+# Regression
+## Introduction to Regression
+Regression analysis is predicting an outcome variable from one(single regression) or more predictor variables(multiple regression) and has a general equation of outcome = (model) + error.
+
+## Straight Lines
+A more conceptualized formula is Yi =(b0 +b1Xi)+summationi where b0 nd b1 are regression coefficients and are gradient of straight line and intercept of that line respectively, Yi is the outcome variable and Xi is ith participant score on predictor variable.
+
+## Least squares
+To find the line that fits the data we use method of least squares. We calculate the difference between line and actual data as the line is our model, where the difference is also called as residuals same as deviations. The difference is then squared to see how well the line fits the data.
+
+## Assessing goodness of fit
+We can calculate the fit of most basic model and fit of best model by: deviation = summation(observed - model)^2.
+The variation in outcome is R^2 = SS(m)/SS(t), where SS(m) is model sum of squares.
+To measure how the prediction has improved for the outcome compared to level of inaccuracy of model we can calculate F-ratios as F= MS(m)/MS(r), where MS(m) is mean squares of model and MS(r) is residual mean squares. A good model has higher F-ratio.
+
+The t-statistics test null hypothesis that regression model coefficient b is different from 0.
+t= (b(observed)-b(expected))/SE(b) where SE(b) is standard error of b.
+
+## Regression in R and Interpreting a single regression
+First load package library(Rcmdr).We run regression analysis using lm() function.
+newModel <- lm(outcome ~ predictor(s), data = dataframe, na.action=an action), where
+newmodel is new model created, outcome is dependent variable, predictor(s) is/are predictor variable(s) and na.action is optional command to ignore NA. Then, to see our analysis using lm model we execute summary(myModel). ANOVA tells whether model provides good prediction for the dependent variable but does not tell variable contribution in model.
+
+## Multiple Regression
+Multiple regression is used when we have multiple predictors. It has a general formula of Yi=(b0 + b1X1i + b2X2i +...+ bnXni) = ??i
+
+## Sum of squares, R and R^2 and AIC
+We calculate SS(t) by taking difference between observed values and mean of dependent variable, SS(r) by taking difference between predicted model values and observed values and SS(m) by finding difference between predicted model values and mean value. Higher the R^2 value better the fit of the model.
+In order to overcome the disadvantage of R^2 where adding more variables causes it to up we use AIC = nln(SSE/n) = 2k where, n is number of cases, ln is natural log, SSE is sum squared error and k is number of predictors. AIC is also the measure of parsimony adjusted model fit.
+The different methods of regression are: Hierarchical, forced entry, stepwise and all-subsets methods.
+
+## Accuracy of regression model.
+
+Diagnostics:
+1.	Outliers and residuals: the simple way is to check for outliers and residuals
+2.	Influential cases: Checking whether there are any influence cases on the parameters of the model like checking the adjusted predicted value when the particular case is not included in analysis and the standardized residual which is the residual divided by SE. Cook???s distance considers the influence of a single case as a whole. We can also use the hat values ((k+1)/n) which checks for how much observed values of a dependent variable has an influence over predicted values. Hat values can lie between 0 and 1.
+
+Generalization:
+To ensure that our results are correct certain assumptions must be true:
+Predictor variables must be quantitative or categorical with only 2 categories and dependent variable must be quantitative, continuous or unbounded.
+Predictors must have some variation.
+No perfect linear relationship should exist between two or more predictor variables.
+Residuals must have same variance at each level and for two observations residuals should be independent.
+The errors must be normally distributes, outcome of every dependent variable value should be independent and mean values of dependent variable should be in a linear fashion.
+  
+We can cross-validate the model by calculating adjusted R^2 and splitting the data
+When there is  correlation between two or more predictor variables there exists muiticollinearity.
+
+# R Packages
+This document used `r cite_r("r-references.bib")` for R scripts and summary.
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
+
+
+
