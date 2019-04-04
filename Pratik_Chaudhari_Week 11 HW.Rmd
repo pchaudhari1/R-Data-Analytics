@@ -1,0 +1,251 @@
+---
+title             : "Week 11 Homework"
+shorttitle        : "Week 11"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    address       : "326 Market Street, Harrisburg, PA 17101"
+    email         : "pchaudhari@my.harrisburgu.edu"
+
+affiliation:
+  - id            : "247910"
+    institution   : "Harrisburg University of Science and Technology"
+
+authornote: |
+  This document contains the Week 11 HW scripts.
+
+abstract: |
+
+  
+keywords          : ""
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+
+```{r setup, include = FALSE}
+options(scipen=999)
+
+packages <- c('papaja', 'knitr', 'citr', 'car','mlogit','readr','Amelia','caTools','pscl', 'dplyr', 'tidyverse', 'broom', 'corrplot')
+
+for(p in packages){
+  if(!require(p,character.only = TRUE)) install.packages(p, dependencies = TRUE)
+  suppressMessages(library(p,character.only = TRUE, quietly = TRUE))
+}
+```
+
+```{r wordcount, echo=FALSE}
+# devtools::install_github("benmarwick/wordcountaddin", type = "source", dependencies = TRUE)
+word_count <- suppressMessages(toString(wordcountaddin::word_count("Pratik_Chaudhari_Week 11 HW.Rmd")))
+# print(paste("Word count:",word_count))
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+```{r loadData, echo=FALSE}
+# Loading dat file into R environment
+getwd()
+df <- suppressMessages(read_delim("Lacourse.dat", "\t", escape_double = FALSE, trim_ws = TRUE))
+```
+
+
+```{r missingvalues1, echo=FALSE}
+# Checking for any NAs in the data.
+apply(df, 2, function(x) any(is.na(x)))
+```
+
+Internal structure and top 6 rows of the df.
+```{r Lacoursedata, echo= FALSE}
+str(df); head(df)
+```
+
+```{r data, echo= FALSE}
+# Factoring the categorical columns
+df$Marital_Status = factor(df$Marital_Status, levels = c("Separated or Divorced", "Together"))
+df$Suicide_Risk = factor(df$Suicide_Risk, levels = c("Non-Suicidal", "Suicidal"))
+df$Age_Group = factor(df$Age_Group, levels = c("14-16 Years Old", "16-19 Years Old"))
+```
+
+
+
+Spliting the data into train and test data with the ration of .70.
+```{r splitlacourseData, echo=FALSE}
+set.seed(147) 
+sample = sample.split(df$Suicide_Risk, SplitRatio = .70)
+train = subset(df, sample == TRUE)
+test  = subset(df, sample == FALSE)
+```
+
+# Creating logistic regression models
+Creating logistics regression models using combination of columns to see which is a better fit.
+```{r model5, echo=FALSE}
+dfModel5 = glm(Suicide_Risk ~ Age_Group + Drug_Use + Marital_Status + Self_Estrangement, data = train, family = binomial())
+pscl::pR2(dfModel5)
+
+summary(dfModel5)
+```
+
+```{r model6model7, echo=FALSE}
+dfModel6 = glm(Suicide_Risk ~ Age_Group + Drug_Use + Marital_Status + Father_Negligence + Self_Estrangement, data = train, family = binomial())
+pscl::pR2(dfModel6)
+
+dfModel7 = glm(Suicide_Risk ~ Age_Group + Drug_Use + Marital_Status + Mother_Negligence + Father_Negligence + Metal + Self_Estrangement, data = train, family = binomial())
+pscl::pR2(dfModel7)
+
+#McFadden Pseudo R^2.
+null.ll = dfModel7$null.deviance/(-2)
+proposed.ll = dfModel7$deviance/(-2)
+McFaden.R.squared = (null.ll - proposed.ll) / null.ll
+McFaden.R.squared
+
+pvalue.of.R.squared = 1 - pchisq(2*(proposed.ll - null.ll), df = (length(dfModel7$coefficients)-1))
+pvalue.of.R.squared
+
+
+summary(dfModel6); summary(dfModel7)
+```
+
+Checking quality of our models created from the data using AIC and BIC estimators.
+```{r compareModels, echo=FALSE}
+AIC(dfModel5,dfModel6,dfModel7)
+BIC(dfModel5,dfModel6,dfModel7)
+```
+
+# Prediction and accuracy
+The model7 has the highest accuracy of 88.89%%. Different research and surveys too say that a teen may increase self-abusive behavior such as binge drinking, using drugs, etc,. Divorce can have a great effect on a teen's mind. Also reasons like parents negligence and alienating can have serious consequences and can lead to to even suicde. The data clearly shows that marital status and parents neglience may lead a child alienating themselves which may lead to drug abuse and increased chances of committing suicde.
+
+```{r testModel5, echo=FALSE}
+prediction5 <- predict(dfModel5, test, type = "response")
+prediction.results5 <- ifelse(prediction5 > 0.5,"Suicidal","Non-Suicidal")
+error5 <- mean(prediction.results5 != test$Suicide_Risk)
+print(paste('Accuracy of model 5:', paste0(round(1-error5,4)*100,"%")))
+```
+
+```{r testModel6, echo=FALSE}
+prediction6 <- predict(dfModel6, test, type = "response")
+prediction.results6 <- ifelse(prediction6 > 0.5,"Suicidal","Non-Suicidal")
+error6 <- mean(prediction.results6 != test$Suicide_Risk)
+print(paste('Accuracy of model 6:', paste0(round(1-error6,4)*100,"%")))
+```
+
+```{r testModel7, echo=FALSE}
+prediction7 <- predict(dfModel7, test, type = "response")
+prediction.results7 <- ifelse(prediction7 > 0.5,"Suicidal","Non-Suicidal")
+error7 <- mean(prediction.results7 != test$Suicide_Risk)
+print(paste('Accuracy of model 7:', paste0(round(1-error7,4)*100,"%")))
+```
+
+
+# Checking for Assumptions
+
+## Linearity
+The smooth curve of drug_use and self_estrangement shows they are linearly associated with suicide_risk whereas rest of the variables are not linearly associated with suicde_risk.
+##Linarity assumption
+```{r linearity, echo=FALSE}
+# fitting the logistic regression model
+mymodel<- glm(Suicide_Risk ~Age_Group + Drug_Use + Marital_Status, data = df, family = binomial())
+
+# predicting the probability of suicde_risk.
+probabilities <- predict(mymodel, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "Suicidal", "Non_suicidal")
+head(predicted.classes)
+
+# selecting numeric predictors
+df1 <- df %>%
+  dplyr::select_if(is.numeric) 
+predictors <- colnames(df1)
+
+# binding logit and todying the data for plotting
+df1 <- df1 %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+theme_set(theme_classic())
+
+# creating scatter plots
+ggplot(df1, aes(logit, predictor.value)) + geom_point(size = 0.5, alpha = 0.5) + 
+  geom_smooth(method = "loess") + theme_bw() + facet_wrap(~predictors, scales = "free_y")
+```
+
+
+## Influnetial Values
+```{r infuentialvalues, echo=FALSE}
+# plotting extreme values of the data using Cooks distance
+plot(mymodel, which = 4, id.n = 4)
+
+# calculating standardized residuals and Cook's distance using augment() function available in broom package.
+model.data <- augment(mymodel) %>% mutate(index = 1:n()) 
+
+model.data %>% top_n(3, .cooksd)
+
+# plotting the scatterplot for standardized residuals
+ggplot(model.data, aes(index, .std.resid)) + geom_point(aes(color = Suicide_Risk), alpha = .5) + theme_bw()
+
+#filtering out influential data points with abs(.std.res) > 4:
+model.data %>% filter(abs(.std.resid) > 4)
+```
+
+## Multicolinearity
+The VIF scoresare close to 1 and less than 5 so multicolinearity assumption is met.
+```{r checkmulticollinearityAssumption, echo=FALSE}
+car::vif(dfModel5)
+```
+
+## Normal Distribution
+From the histogram, the residuals are not normally distributed so the assumption of normality has not been met. Also the p-values is less that 0.05
+```{r checknormalality, echo= FALSE}
+hist(resid(dfModel5),main='Histogram of residuals',xlab='Standardised
+Residuals',ylab='Frequency')
+```
+
+## Homoscedasticity
+Checking the homoscedasticity assumption by plotting a scatterplot.
+```{r checkhomoscedasticity, echo= FALSE}
+plot(dfModel5, which = 1)
+```
+
+## Additiivity
+Additivity assumption is valid. They are almost parallel but overall the dataset is good.
+```{r checkadditivity, echo=FALSE}
+correlations<- cor(df %>% dplyr::select_if(is.numeric), use = "pairwise.complete.obs")
+corrplot(correlations, method="pie");
+corrplot(correlations, method="number");
+corrplot(correlations, method="shade")
+```
+
+## Data analysis
+I used `r cite_r("r-references.bib")` for all our analyses.
+
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
