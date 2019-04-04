@@ -1,6 +1,6 @@
 ---
-title             : "Week 05 Reading and Lab3"
-shorttitle        : "Reading and Lab3"
+title             : "Interqualrtile and ggplot"
+shorttitle        : "Data vizualization"
 
 author: 
   - name          : "Pratik Chaudhari"
