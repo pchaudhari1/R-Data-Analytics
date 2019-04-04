@@ -50,29 +50,8 @@ set.seed(42)
 knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
 ```
 
-# Summary
-  To install R go to https://www.r-project.org/ , click CRAN select the mirror and choose the platform (Linux, MacOS or Windows). For windows download ‘R 2.12.2’ and for MacOS download ‘R-2.12.2.pkg’.The three windows in R: Console to write commands and execute them, editor to write commands and graphics (windows) or quartz (MacOS) to see our plotted graphs and charts.
 
-  The menus in R are:
-File: Opening new file or project, existing file, saving the workspace, import, output, etc.
-Edit: Options such as cut, paste, copy
-View: Switching tabs, showing or hiding toolbar, showing plots, packages, history
-Misc: Stopping ongoing computations, listing objects in working environment
-Packages: Load, install or update packages, set default CRAN mirror
-Window: Navigating between multiple open windows.
-Help: Online help with FAQs, offline help with manuals and system files
-Resize: Resizing the image in the graphics window.
 
-  Commands are made up of objects and function and object is created from a function and is separated from function by ‘<-‘. We use c() to concatenate multiple variables. Multiple commands can be run at same time by separating commands by ‘;’. A workspace is a collection of objects and functions created in a session. When we quit R we save our work in the workspace. We can specify a working directory by setwd() and providing the path or see the working directory using getwd().
-
-  A package can be installed by running “install.packages(“package.name”) and “library(package.name)” to reference the package. If we need help with a particular function we can use “help(function)” or “?function”.
-
-  We can combine the data by creating a data frame or using list() or cbind() functions. We use arithmetical and logical operators to create a new variable from the existing one. In R we use “==” for computation. A variable should be named as variable.name and not variable_name. 
-A ‘factor' is used to categorize the data and store it as levels. Data types in R: scalars, vectors (numerical, character, logical), matrices, data frames, and lists.
-
-  Data can be imported from a .csv, .txt or foreign packages. For e.g. read.csv.
-To save one object: saveRDS(object, file), my_data <- readRDS(file)
-To save multiple objects: save(data1, data2, file = “my_data.RData”), load(“my_data.RData”). There are a number ways to manipulate the data like creating datafame and matrices, factorizing data, sorting, adding or removing a column, specifying a condition, subset data using subset() function etc.[@field2012discovering]
 
 # R code output
 #1,2
