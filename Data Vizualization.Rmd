@@ -6,19 +6,9 @@ author:
   - name          : "Pratik Chaudhari"
     affiliation   : ""
     corresponding : yes    # Define only one corresponding author
-    address       : "326 Market Street, Harrisburg, PA 17101"
-    email         : "pchaudhari@my.harrisburgu.edu"
+    address       : "Burlington, MA"
 
-affiliation:
-  - id            : "247910"
-    institution   : "Harrisburg University of Science and Technology"
 
-authornote: |
-  This document contains the summary of Fields book Chapter 4 and Lab3 scripts.
-
-abstract: |
-
-  
 keywords          : "graphs, ggplot2, scatterplot, histogram, geom"
 wordcount         : "X"
 
@@ -72,7 +62,7 @@ A histogram can be used to show the frequency distribution of our data. A boxplo
 
 
 
-# Lab questions
+# Lab 
 
 ```{r readcsv, echo=FALSE}
 Lab3<-read.csv("/Users/one/Desktop/Principles-of-Analy-500/Assignments/HW-5/Lab3 (1).csv", header=TRUE)
