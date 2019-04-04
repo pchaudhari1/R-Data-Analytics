@@ -1,6 +1,5 @@
 ---
-title             : "Chapter 05 Reading and hw6"
-shorttitle        : "Reading and hw6"
+title             : "Mahalanobis distance and Assumptions"
 
 author: 
   - name          : "Pratik Chaudhari"
