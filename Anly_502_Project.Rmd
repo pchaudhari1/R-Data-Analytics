@@ -1,0 +1,547 @@
+---
+title             : "Wine Quality Prediction"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    
+
+abstract: |
+  Two datasets are included, related to red and white vinho verde wine samples, from the north of Portugal. The goal is to model wine quality based on physicochemical tests.
+
+  
+keywords          : ""
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+# Process
+
++ Descriptive analytics of dataset.
++ Visualizing featurs in dataset.
++ Checking for null values.
++ Running simple linear regression to check significant variabes in dataset
++ Running logistic regression to predict wine quality variable.
++ Binomial regression
++ Random Forest
++ Decision Tree
+
+
+
+```{r setup, include = FALSE}
+options(scipen=999)
+
+packages <- c('papaja', 'knitr', 'citr', 'car','mlogit','readr','Amelia','caTools', 'dplyr', 'rpart', 'mlogit', 'nnet', 'ggplot2', 'caret', 'MASS', 'corrplot', 'gridExtra', 'randomForest', 'tidyverse', 'broom')
+
+for(p in packages){
+  if(!require(p,character.only = TRUE)) install.packages(p, dependencies = TRUE)
+  suppressMessages(library(p,character.only = TRUE, quietly = TRUE))
+}
+```
+
+
+```{r wordcount, echo=FALSE}
+# devtools::install_github("benmarwick/wordcountaddin", type = "source", dependencies = TRUE)
+word_count <- suppressMessages(toString(wordcountaddin::word_count("Anly_502_Project.Rmd")))
+# print(paste("Word count:",word_count))
+```
+
+
+```{r analysis-preferences, echo= FALSE}
+# Seed for random number generation
+set.seed(100)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+We start by loading the required packages and the red wine and white wine quality dataset.
+```{r loadData, echo=FALSE}
+red<-read.csv("/Users/one/Desktop/Analytics Method 502//Project/winequality-red.csv",sep=";", header=TRUE)
+white <- read.csv("/Users/one/Desktop/Analytics Method 502//Project/winequality-white.csv",sep=";", header=TRUE)
+```
+
+# Checking for NA
+
+Checking for missing values. There are no NA in either dataset.
+```{r missingvalues, echo=FALSE}
+apply(red, 2, function(x) any(is.na(x)))
+apply(white, 2, function(x) any(is.na(x)))
+```
+
+# Exploratory analysis
+
+Doing some initial exploratory analysis. Most of the observation fallin the category 5 and 6 quality.
+```{r exploranalysis, echo=FALSE}
+head(red)
+str(red)
+summary(red)
+table(red$quality)
+head(white)
+str(white)
+summary(white)
+table(white$quality)
+```
+
+# Data visualiztaion
+
+Data visualization to see the trend in the dataset. The graphs show imbalance in the dataset. Most of the data is skewed to the left.
+```{r datavizualization, echo = FALSE}
+r1 <- ggplot(red, aes(x=fixed.acidity,fill=as.factor(quality)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+r2<- ggplot(red, aes(x=total.sulfur.dioxide,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+r3<- ggplot(red, aes(x=alcohol,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+r4 <- ggplot(red, aes(x=pH,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+r5 <- ggplot(red, aes(x=residual.sugar,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+
+w1 <- ggplot(white, aes(x=fixed.acidity,fill=as.factor(quality)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+w2 <- ggplot(white, aes(x=total.sulfur.dioxide,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+w3 <- ggplot(white, aes(x=alcohol,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+w4 <- ggplot(white, aes(x=pH,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+w5 <- ggplot(white, aes(x=residual.sugar,fill=as.factor(quality)))+
+  geom_histogram(bins=25, col='black',alpha=0.3)
+
+grid.arrange(r1,r2,r3,r4,r5, nrow=3)
+grid.arrange(w1,w2,w3,w4,w5, nrow=3)
+```
+
+# Checking for outliers
+
+Checking for any outliers in the dataset. 
++ Maximum number of highvalues fallin in wine quality '5' and '6'. But we cannot assume that those are outliers.
++ Mean of alcohol, sulphates, volatile acidity, total sulpfur dioxide and density looks significantly different from each other for wine quality '5' and '6' and hence they could be significant variable to determine quality of the wine.
+```{r checkoutliers, echo= FALSE}
+red_out <- list()
+col_names <- colnames(red[,1:11])
+for(names in col_names){
+    red_out[[names]] <- ggplot(red[c(names,'quality')], aes(as.factor(quality),red[[names]])) +
+                geom_boxplot() + ylab(names) + xlab('Quality') 
+    print(red_out[[names]])
+}
+
+white_out <- list()
+col_names <- colnames(white[,1:11])
+for(names in col_names){
+    white_out[[names]] <- ggplot(white[c(names,'quality')], aes(as.factor(quality),white[[names]])) +
+                geom_boxplot() + ylab(names) + xlab('Quality') 
+    print(white_out[[names]])
+}
+```
+
+# Classifying the quality of wines
+
+We create a rating column. For red wine:
++ Quality rating > 6 : Wine is "Good"
++ Quality rating <=6 : Wine is "Not good"
+
+For white wine:
++ Quality rating > 7 : wine is "Good"
++ Quality rating <=7 : wine is "Not good"
+```{r classification, echo=FALSE}
+red$rating <- ifelse(as.integer(red$quality) >6,1,0)
+white$rating <- ifelse(as.integer(white$quality) > 7,1,0)
+table(red$rating)
+table(white$rating)
+```
+
+
+# Correlation 
+
+Finding correlation in the data and from the output we can see that none of the variables are correlated with the quality variable.
+```{r correlation, echo = FALSE}
+red_corr <- data.frame(cor(red))
+print(cbind(colnames(red),round(red_corr$quality, 4)))
+
+white_corr <- data.frame(cor(white))
+print(cbind(colnames(red),round(white_corr$quality, 4)))
+```
+
+
+# Splitting the data on quality
+
+Splitting the data into train dataset and test dataset with a split ratio of .70.
+```{r splittingdata, echo=FALSE}
+set.seed(3000)
+sample_red <- sample.split(red$quality, SplitRatio = .70)
+red_train <- subset(red, sample_red == TRUE)
+red_test <- subset(red, sample_red == FALSE)
+
+sample_white <- sample.split(white$quality, SplitRatio = .70)
+white_train <- subset(white, sample_white == TRUE)
+white_test <- subset(white, sample_white == FALSE)
+```
+
+# Distance
+
+```{r distance, echo=FALSE}
+red_dist <- data.frame(table(red$quality))
+red_train_dist <- data.frame(table(red_train$quality))
+red_test_dist <- data.frame(table(red_test$quality))
+red_class_dist <- cbind(red_dist, red_train_dist[2], red_test_dist[2])
+red_class_dist
+
+white_dist <- data.frame(table(white$quality))
+white_train_dist <- data.frame(table(white_train$quality))
+white_test_dist <- data.frame(table(white_test$quality))
+white_class_dist <- cbind(white_dist, white_train_dist[2], white_test_dist[2])
+white_class_dist
+```
+
+
+# Correlation plotting
+
+Checking for correlation among significant variables.
++ For red wine acidic variables are correlated with each other and also with pH and density. 
++ For white wine quality is moderately correlated with alcohol, alcohol is moderately correlated with the density of wine apart from being moderaltely correlated with quality, density is strongly correlated with residual sugar quantity and moderately correlated with pH and free sulfur dioxide and total sulfur dioxide are strongly correlated
+```{r correlationplot, echo=FALSE}
+R <- cor(red)
+corrplot(R, method = "number")
+
+W <- cor(white)
+corrplot(W, method = "number")
+```
+
+
+# Linear Regression
+
+Performing linear regression. 
++ For red wine adjusted R-squared value is 0.3792 and  volatile acidity, chlorides, total sulfur dioxide, sulphates and alcohol are significant variables. 
++ Adjusted R-squared for white wine is 0.2829. Citric acid, total sulfur dioxide and chlorides are not significant. Chloride is moderately correlated with alcohol and alcohol was usually higher for better quality wines. 
++ We will remove the insignificant variables and see if that improves R-squared of our model.
+
+```{r linearreg, echo=FALSE}
+red_lm1 <- lm(quality ~ .-rating, data = red_train)
+summary(red_lm1)
+
+white_lm1 <- lm(quality ~ .-rating, data = white_train)
+summary(white_lm1)
+```
+
+Removing the non-significant variables reduces the adjusted R-squared value for red wine to 0.364 and slightly improved for white wine to 0.2831.
+```{r linearregression, echo=FALSE}
+red_lm2 <- lm(quality ~ volatile.acidity + total.sulfur.dioxide + sulphates + alcohol, data = red_train)
+summary(red_lm2)
+
+white_lm2 <- lm(quality ~ .-citric.acid - chlorides - total.sulfur.dioxide - rating, data = white_train)
+summary(white_lm2)
+```
+
+Removing fixes acidity for white wine does not improve our model and adjusted R-squared value is 0.2816 
+```{r linear, echo=FALSE}
+white_lm3 <- lm(quality ~ .-fixed.acidity - citric.acid - chlorides - total.sulfur.dioxide - rating , data = white_train)
+summary(white_lm3)
+```
+
+The model prediction will not give an integer value so we cannot properly explain the variation in the quality. We can check the prediction made by our best model (red_lm1 and white_lm2) over testing set. For red wine it almost predicts good quality wine with value almost close to 8 but for white wine the maximum value is only 7.2, so it is not predicting any wine to be of high quality.
+```{r predictquality, echo= FALSE}
+redpred <- predict(red_lm1, newdata = red_test)
+summary(redpred)
+
+whitepred <- predict(white_lm2, newdata = white_test)
+summary(whitepred)
+```
+
+
+# Splitting the data on rating
+
+Splitting the data on the basis of rating,
+```{r datasplit, echo=FALSE}
+set.seed(123)
+sample_red1 <- sample.split(red$rating, SplitRatio = .70)
+red_train1 <- subset(red, sample_red1 == TRUE)
+red_test1 <- subset(red, sample_red1 == FALSE)
+
+sample_white1 <- sample.split(white$rating, SplitRatio = .70)
+white_train1 <- subset(white, sample_white1 == TRUE)
+white_test1 <- subset(white, sample_white1 == FALSE)
+```
+
+# Data Factor
+
+```{r factordata, echo= FALSE}
+red_train1$rating <- as.factor(red_train1$rating)
+red_test1$rating <- as.factor(red_test1$rating)
+white_train1$rating <- as.factor(white_train1$rating)
+white_test1$rating <- as.factor(white_test1$rating)
+str(white_train1)
+str(white_test1)
+```
+
+# Logistic regression
+
+Building logistic regression models for red wine and white wine datasets.
+```{r logregression, echo =FALSE}
+red_mlg <- glm(rating ~.-quality ,data=red_train1,family = "binomial")
+white_mlg <- glm(rating ~.-quality ,data=white_train1,family = "binomial")
+summary(red_mlg)
+summary(white_mlg)
+```
+
+
+Finding the error and accuracy of the model. The red wine model accuracy is 86.4% and white wine model to 75.6%
+```{r Logisticmodelaccuracy, echo=FALSE}
+red_prediction <- predict(red_mlg, newdata = red_test1, type = "response")
+print(paste('Accuracy of red wine model is:', paste0(round(max(red_prediction),3)*100,"%")))
+white_prediction <- predict(white_mlg, newdata=white_test1, type="response")
+print(paste('Accuracy of white wine model is:', paste0(round(max(white_prediction),3)*100,"%")))
+```
+
+# Logistic Regression Assumptions
+
+```{r assumptions, echo=FALSE}
+# Fit the logistic regression model
+red_model <- glm(rating ~. -quality, data = red, 
+               family = binomial)
+
+red_probabilities <- predict(red_model, type = "response")
+red_predicted.classes <- ifelse(red_probabilities > 0.5, "pos", "neg")
+head(red_predicted.classes)
+
+white_model <- glm(rating ~. -quality, data = white, 
+               family = binomial)
+
+white_probabilities <- predict(white_model, type = "response")
+white_predicted.classes <- ifelse(white_probabilities > 0.5, "pos", "neg")
+head(white_predicted.classes)
+```
+
+Linearity assumption. Taking only numeric columns from the originial data set and binding the logit values to the data and then creating a scatterplot. 
++ For red wine citric.acid, density and quality have a smooth scatter plot. 
++ For white wine alcohol, chlorides and quality have a smooth scatter plot.
+```{r linearity assumption, echo= FALSE}
+reddata <- red %>%
+  dplyr::select_if(is.numeric) 
+red_predictors <- colnames(reddata)
+# Bind the logit and tidying the data for plot
+reddata <- reddata %>%
+  mutate(red_logit = log(red_probabilities/(1-red_probabilities))) %>%
+  gather(key = "red_predictors", value = "predictor.value", -red_logit)
+
+theme_set(theme_classic())
+
+ggplot(reddata, aes(red_logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_wrap(~red_predictors, scales = "free_y")
+
+whitedata <- white %>%
+  dplyr::select_if(is.numeric) 
+white_predictors <- colnames(whitedata)
+# Bind the logit and tidying the data for plot
+whitedata <- whitedata %>%
+  mutate(white_logit = log(white_probabilities/(1-white_probabilities))) %>%
+  gather(key = "white_predictors", value = "predictor.value", -white_logit)
+
+theme_set(theme_classic())
+
+ggplot(whitedata, aes(white_logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_wrap(~white_predictors, scales = "free_y")
+```
+
+There is collinearity in red wine datset. Fixed.acidity and density variables in red wine and residual.sugar,density,alsohol have value of VIF that exceeds 5.
+```{r multicollinearity, echo=FALSE}
+car::vif(red_model)
+car::vif(white_model)
+```
+
+
+```{r infuentialvalues, echo=FALSE}
+plot(red_model, which = 4, id.n = 3)
+# Extract model results
+red_model.data <- augment(red_model) %>% 
+  mutate(index = 1:n()) 
+red_model.data %>% top_n(3, .cooksd)
+ggplot(red_model.data, aes(index, .std.resid)) + 
+  geom_point(aes(color = rating), alpha = .5) +
+  theme_bw()
+red_model.data %>% 
+  filter(abs(.std.resid) > 3)
+
+plot(white_model, which = 4, id.n = 3)
+# Extract model results
+white_model.data <- augment(white_model) %>% 
+  mutate(index = 1:n()) 
+white_model.data %>% top_n(3, .cooksd)
+ggplot(white_model.data, aes(index, .std.resid)) + 
+  geom_point(aes(color = rating), alpha = .5) +
+  theme_bw()
+white_model.data %>% 
+  filter(abs(.std.resid) > 3)
+```
+
+# Random Forest
+
+Building Random Forest models for red wine and white wine datasets.
+```{r randomforrest, echo=FALSE}
+red_random <- randomForest(rating ~. -quality, data = red_train1)
+white_random <- randomForest(rating ~. -quality, data = white_train1)
+```
+
++ The accuracy rate of random forest model for red wine is (410+34)/480 = 92.5%.
++ The accuracy rate of random forest model for white wine is (1414+17)/1469 = 97.4%.
++ Random Forest model is the best model to predict wine quality.
+```{r randommodelaccuracy, echo=FALSE}
+red_randompred <- predict(red_random, red_test1, type = "class")
+table(red_randompred, red_test1$rating)
+white_randompred <- predict(white_random, white_test1, type = "class")
+table(white_randompred, white_test1$rating)
+```
+
+
+# Decision Tree Model
+
+Building Decision tree models for red wine and white wine datasets.
+```{r decisiontree, echo=FALSE}
+red_decision <- rpart(rating ~. -quality, data = red_train1, method="class")
+white_decision <- rpart(rating ~. -quality, data = white_train1, method="class")
+```
+
++ The accuracy rate of decision tree model for red wine is (402+33)/480 = 90.6%.
++ The accuracy rate of decision tree model for white wine is (1408+6)/1469 = 96.3%.
+```{r decisiontreeaccuracy, echo=FALSE}
+red_decisionpred <- predict(red_decision, red_test1, type = "class")
+table(red_decisionpred, red_test1$rating)
+white_decisionpred <- predict(white_decision, white_test1, type = "class")
+table(white_decisionpred, white_test1$rating)
+```
+
+# T-test for red wine
+
+## Null Hypotheis
++ No significant difference in fixed acity concentration for good and bad rating of red wine. The rating is independent on the fixed acidity.
++ No significant difference in volatile acidity concentration for good and bad rating of red wine. The rating is independent on the volatile acidity.
++ No significant difference in citric acid concentration for good and bad rating of red wine. The rating is independent on the citric acid.
++ No significant difference in residual sugar concentration for good and bad rating of red wine. The rating is independent on the residual sugar.
++ No significant difference in chlorides concentration for good and bad rating of red wine. The rating is independent on the chlorides.
++ No significant difference in free sulphur dioxide concentration for good and bad rating of red wine. The rating is independent on the free sulphur dioxide.
++ No significant difference in density concentration for good and bad rating of red wine. The rating is independent on the density.
++ No significant difference in pH concentration for good and bad rating of red wine. The rating is independent on the pH.
++ No significant difference in sulphates concentration for good and bad rating of red wine. The rating is independent on the sulphates.
++ No significant difference in alcohol concentration for good and bad rating of red wine. The rating is independent on the alcohol.
+```{r redttest, echo=FALSE}
+t.test(red$fixed.acidity~red$rating)
+t.test(red$volatile.acidity~red$rating)
+t.test(red$citric.acid~red$rating)
+t.test(red$residual.sugar~red$rating)
+t.test(red$chlorides~red$rating)
+t.test(red$free.sulfur.dioxide~red$rating)
+t.test(red$density~red$rating)
+t.test(red$pH~red$rating)
+t.test(red$sulphates~red$rating)
+t.test(red$alcohol~red$rating)
+```
+
+## Results for red wine t-test
++ The p-value for fixed acidity is less 0.05 so we reject null hypothesis. A significant difference exists between fixed acidity and rating of red wine and so rating is dependent on fixed acidity concentration.
++ The p-value for volatile acidity is less 0.05 so we reject null hypothesis. A significant difference exists between volatile acidity and rating of red wine and so rating is dependent on volatile acidity concentration.
++ The p-value for citric acid  is less 0.05 so we reject null hypothesis. A significant difference exists between citric acid and rating of red wine and so rating is dependent on citric acid concentration.
++ The p-value for residual sugar is greater than 0.05 so we fail to reject null hypothesis.
++ The p-value for chlorides is less 0.05 so we reject null hypothesis. A significant difference exists between chlorides and rating of red wine and so rating is dependent on chlorides concentration.
++ The p-value for free sulphur dioxide is less 0.05 so we reject null hypothesis. A significant difference exists between free sulphur dioxide and rating of red wine and so rating is dependent on free sulphur dioxide concentration.
++ The p-value for density is less 0.05 so we reject null hypothesis. A significant difference exists between density and rating of red wine and so rating is dependent on density concentration.
++ The p-value for pH is less 0.05 so we reject null hypothesis. A significant difference exists between pH and rating of red wine and so rating is dependent on pH concentration.
++ The p-value for sulphates is less 0.05 so we reject null hypothesis. A significant difference exists between sulphates and rating of red wine and so rating is dependent on sulphates concentration.
++ The p-value for alcohol is less 0.05 so we reject null hypothesis. A significant difference exists between alcohol and rating of red wine and so rating is dependent on alcohol concentration.
+
+
+# T-test for white wine
+
+## Null Hypotheis
++ No significant difference in fixed acity concentration for good and bad rating of white wine. The rating is independent on the fixed acidity.
++ No significant difference in volatile acidity concentration for good and bad rating of white wine. The rating is independent on the volatile acidity.
++ No significant difference in citric acid concentration for good and bad rating of white wine. The rating is independent on the citric acid.
++ No significant difference in residual sugar concentration for good and bad rating of white wine. The rating is independent on the residual sugar.
++ No significant difference in chlorides concentration for good and bad rating of white wine. The rating is independent on the chlorides.
++ No significant difference in free sulphur dioxide concentration for good and bad rating of white wine. The rating is independent on the free sulphur dioxide.
++ No significant difference in density concentration for good and bad rating of white wine. The rating is independent on the density.
++ No significant difference in pH concentration for good and bad rating of white wine. The rating is independent on the pH.
++ No significant difference in sulphates concentration for good and bad rating of white wine. The rating is independent on the sulphates.
++ No significant difference in alcohol concentration for good and bad rating of white wine. The rating is independent on the alcohol.
+```{r whitettest, echo=FALSE}
+t.test(white$fixed.acidity~white$rating)
+t.test(white$volatile.acidity~white$rating)
+t.test(white$citric.acid~white$rating)
+t.test(white$residual.sugar~white$rating)
+t.test(white$chlorides~white$rating)
+t.test(white$free.sulfur.dioxide~white$rating)
+t.test(white$density~white$rating)
+t.test(white$pH~white$rating)
+t.test(white$sulphates~white$rating)
+t.test(white$alcohol~white$rating)
+```
+
+## Results for white wine t-test
++ The p-value for fixed acidity is less 0.05 so we reject null hypothesis. A significant difference exists between fixed acidity and rating of white wine and so rating is dependent on fixed acidity concentration.
++ The p-value for volatile acidity is greater that 0.05 so we fail to reject null hypothesis.
++ The p-value for citric acid is greater than 0.05 so we fail to reject null hypothesis.
++ The p-value for residual sugar is less 0.05 so we reject null hypothesis. A significant difference exists between residual sugar and rating of white wine and so rating is dependent on fixed acidity concentration.
++ The p-value for chlorides is less 0.05 so we reject null hypothesis. A significant difference exists between chlorides and rating of white wine and so rating is dependent on chlorides concentration.
++ The p-value for free sulphur dioxide is greater than 0.05 so we fail to reject null hypothesis.
++ The p-value for density is less 0.05 so we reject null hypothesis. A significant difference exists between density and rating of white wine and so rating is dependent on density concentration.
++ The p-value for pH is less 0.05 so we reject null hypothesis. A significant difference exists between pH and rating of white wine and so rating is dependent on pH concentration.
+The p-value for sulphates is greater than 0.05 so we fail to reject null hypothesis.
++ The p-value for alcohol is less 0.05 so we reject null hypothesis. A significant difference exists between alcohol and rating of white wine and so rating is dependent on alcohol concentration.
+
+
+# Methods
+We report how we determined our sample size, all data exclusions (if any), all manipulations, and all measures in the study. <!-- 21-word solution (Simmons, Nelson & Simonsohn, 2012; retrieved from http://ssrn.com/abstract=2160588) -->
+
+## Participants
+
+## Material
+
+## Procedure
+
+## Data analysis
+We used `r cite_r("r-references.bib")` for all our analyses.
+
+# Results
+
+# Discussion
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
