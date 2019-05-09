@@ -5,7 +5,6 @@ author:
   - name          : "Pratik Chaudhari"
     affiliation   : ""
     corresponding : yes    # Define only one corresponding author
-    address       : "Burlington, MA"
 
   
 keywords          : "Assumtions, linearity, Normal Distribution, Homogeneity"
