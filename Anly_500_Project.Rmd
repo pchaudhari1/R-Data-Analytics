@@ -1,0 +1,360 @@
+---
+title             : "AnLy 500 Final Project"
+shorttitle        : "Pokemon"
+
+author: 
+  - name          : "Pratik Chaudhari"
+    affiliation   : ""
+    corresponding : yes    # Define only one corresponding author
+    address       : "326 Market Street, Harrisburg, PA 17101"
+    email         : "pchaudhari@my.harrisburgu.edu"
+
+affiliation:
+  - id            : "247910"
+    institution   : "Harrisburg University of Science and Technology"
+
+authornote: |
+  This document contains the ANLY 500 Final Project Scripts for Pokemon data analysis.
+
+abstract: |
+
+  The main objective of this study is to build different models like Linear regression, Logistic regression, Decision Tree and Random Forest. Since there are two categories in Legendary column I will be using only Binomial Logistic regression to classify the Pokemons on Legendary basis. The following steps are followed to build a regression model: Selecting suitable methods, Interpreting the output, selecting best fit Logistic Regression model and Checking for assumptions. Decision Tree and Random Forest are used to check whether they have a higher accuracy rate than Logistic Regression. The data is of the Pokemon game and not of the pokemon cards game. The data is obtained from Kaggle. This data is being used by various people to complete certain challenges designed by Kaggle. 
+  
+keywords          : "Correlation, Logistic Regression, Decision Tree, Random Forest, K-means"
+wordcount         : "400"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+# Initial Observation
+This data set includes 721 Pokemon, including their number, name, first and second type, and basic stats: HP, Attack, Defense, Special Attack, Special Defense, and Speed.
+These attributes can be sued to calculate the damage done by a type of a pokemon in the Pokemon game. The data can be found on https://www.kaggle.com/abcsds/pokemon/version/2#.
+The data has been collected from various sources like pokemon.com (https://www.pokemon.com/us/pokedex/), pokemondb (https://pokemondb.net/pokedex) and bulbapedia (https://bulbapedia.bulbagarden.net/wiki/List_of_Pok%C3%A9mon_by_National_Pok%C3%A9dex_number).
+
+The data contains following columns:
+
++ ID for each pokemon
++ Name: Name of each pokemon
++ Type 1: The ype of pokemon determining its weakness/resistance to attacks
++ Type 2: Some pokemon can have two different qualities like flying along with water.
++ Total: Describes the strength of a pokemon
++ HP: Hit points of the pokemon of how much attack can it take before fainting
++ Attack: The base modifier for normal attacks (eg. Scratch, Punch)
++ Defense: The base damage resistance against normal attacks
++ SP Atk: special attack, for special attacks (e.g. fire blast, bubble beam)
++ SP Def: The damage resistance against special attacks
++ Speed: Determines which pokemon attacks first each round
++ Generation: The generation of pokemon when it was introduced
++ Legendary: describes based on all the qualities is the pokemon legendary or not
+
+# Analysis
+The continuous variables are used against the Legendary categorical variable to see whether a pokemon is legendary or not. We also define how the attack is influenced by different variables like generation, defense, speed, special attack, special defense, etc., We first check if there are any NA in the data and then create histograms for visualizations to check for data trend and box-plots to see if there are any outliers. The Pokemon’s are then classified based on its attributes and to predict its legendary status with the maximum accuracy.
+
+# Methods
+We use apply() function to check for NA and ggplot2() for visualizations. K-means() is used to cluster the pokemons in 3 categories. The data is split on Attack column to perform linear regression using lm() and then on Legendary column to build Logistic regression model glm(), Random Forest randomForest() and Decision Tree rpart() to check which model yields highest accuracy rate. Certain assumptions are checked for Logistic regression diagnostics.
+
+## Procedure
++ Descriptive analytics of dataset.
++ Visualizing features in dataset.
++ Checking for null values.
++ Running simple linear regression to check significant variables in dataset
++ Running logistic regression to predict wine quality variable.
++ Binomial regression
++ Random Forest
++ Decision Tree
+
+
+```{r setup, include = FALSE}
+options(scipen=999)
+
+packages <- c('papaja', 'knitr', 'citr', 'car','mlogit','readr','Amelia','caTools', 'dplyr', 'rpart', 'mlogit', 'nnet', 'ggplot2', 'caret', 'MASS', 'corrplot', 'gridExtra', 'randomForest', 'tidyverse', 'broom')
+
+for(p in packages){
+  if(!require(p,character.only = TRUE)) install.packages(p, dependencies = TRUE)
+  suppressMessages(library(p,character.only = TRUE, quietly = TRUE))
+}
+```
+
+
+```{r wordcount, echo=FALSE}
+# devtools::install_github("benmarwick/wordcountaddin", type = "source", dependencies = TRUE)
+word_count <- suppressMessages(toString(wordcountaddin::word_count("Anly_500_Project.Rmd")))
+# print(paste("Word count:",word_count))
+```
+
+
+```{r analysis-preferences, echo= FALSE}
+# Seed for random number generation
+set.seed(100)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+We start by loading the required packages and the pokemon dataset.
+```{r loadData, echo=FALSE}
+pokemon<-read.csv("/Users/one/Desktop/Principles-of-Analy-500/Pokemon dataset/Pokemon_2.csv", header=TRUE)
+```
+
+## Checking for NA
+
+Checking for missing values. There are no NA in either dataset.
+```{r missingvalues, echo=FALSE}
+apply(pokemon, 2, function(x) any(is.na(x)))
+```
+
+
+## Exploratory analysis
+
+Doing some initial exploratory analysis.
+```{r exploranalysis, echo=FALSE}
+head(pokemon)
+str(pokemon)
+summary(pokemon)
+table(pokemon$Primary.type)
+table(pokemon$Secondary.type)
+```
+
+
+## Data visualiztaion
+
+Data visualization to see the trend in the dataset. The graphs show overall the data is balanced.
+```{r datavizualization, echo = FALSE}
+p1 <- ggplot(pokemon, aes(x=Total,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p2 <- ggplot(pokemon, aes(x=HP,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p3 <- ggplot(pokemon, aes(x=Attack,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p4 <- ggplot(pokemon, aes(x=Defense,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p5 <- ggplot(pokemon, aes(x=Sp_atk,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p6 <- ggplot(pokemon, aes(x=Sp_def,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p7 <- ggplot(pokemon, aes(x=Speed,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+p8 <- ggplot(pokemon, aes(x=Generation,fill=as.factor(Is_Legendary)))+
+  geom_histogram(bins=25,col='black',alpha=0.3)
+
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8, nrow=4)
+```
+
+## Checking for outliers
+
+Checking for any outliers in the dataset. Maximum number of high values falling in 'False'. But we cannot assume that those are outliers.
+Mean of Special attack, defense, Total, attack and speed looks significantly different from each other and hence they could be significant variables to determine whether the pokemon is Legendary or not.
+```{r checkoutliers, echo= FALSE}
+pokemon_out <- list()
+col_names <- colnames(pokemon[,4:10])
+for(names in col_names){
+    pokemon_out[[names]] <- ggplot(pokemon[c(names,'Is_Legendary')], aes(as.factor(Is_Legendary),pokemon[[names]])) +
+                geom_boxplot() + ylab(names) + xlab('Is_Legendary') 
+    print(pokemon_out[[names]])
+}
+```
+
+## Correlation 
+
+Finding correlation in the data and from the output we can see that none of the variables are correlated with the Is_Legendary.
+```{r correlation, echo = FALSE}
+pok_corr <- data.frame(cor(pokemon[,4:11]))
+print(cbind(colnames(pokemon[,4:11]),round(pok_corr$Is_Legendary, 4)))
+```
+
+
+## Splitting the data on Attack
+
+Splitting the data into train dataset and test dataset with a split ratio of .80 on Attack.
+```{r splittingdata, echo=FALSE}
+set.seed(3000)
+sample_pok <- sample.split(pokemon$Attack, SplitRatio = .80)
+pok_train <- subset(pokemon, sample_pok == TRUE)
+pok_test <- subset(pokemon, sample_pok == FALSE)
+```
+
+
+## Correlation plotting
+
+Checking for correlation among significant variables. Attack, Special attack and special defense are closely correlated to each other. HP and defense are almost correlated with each other.
+```{r correlationplot, echo=FALSE}
+P <- cor(pokemon[3:11])
+corrplot(P, method = "number")
+```
+
+
+## Linear Regression
+
+Performing linear regression to find the factors affecting the attack of a pokemon. Adjusted R-squared value is 1 all the numeric columns are significant variables and affect the attack of a pokemon. The error rate is zero.
+```{r linearreg, echo=FALSE}
+pok_lm <- lm(Attack ~ Total + HP + Defense + Sp_atk + Sp_def + Speed + Generation, data = pok_train)
+summary(pok_lm)
+result_reg <- predict(pok_lm, pok_test)
+Final_data <- cbind(Actual =pok_test$Attack, predicted = result_reg)
+Final_data <- as.data.frame(Final_data)
+head(Final_data)
+```
+
+
+```{r linearerror, echo=FALSE}
+linear_error <- (Final_data$Actual - Final_data$predicted)
+Final_data <- cbind(Final_data$linear_error)
+rmse <- sqrt(mean(Final_data$linear_error^2))
+rmse
+```
+
+## K-means clustering
+
+Performing k-means clustering to partition our observations into clusters.
+```{r k-mean, echo=FALSE}
+pokemon_k <- pokemon[c(3:11)]
+pokemon_k <- as.matrix(pokemon_k)
+pokemon_cluster <- kmeans(pokemon_k, 3)
+clustered_data <- cbind(pokemon, pokemon_cluster$cluster)
+head(clustered_data)
+```
+
+
+
+## Splitting the data
+
+Splitting the data on the Is_Legendary with a ratio of .80
+```{r datasplit, echo=FALSE}
+set.seed(123)
+pokemon1 <-pokemon[c(3:11)]
+sample_pok1 <- sample.split(pokemon1$Is_Legendary, SplitRatio = .80)
+pok_train1 <- subset(pokemon1, sample_pok1 == TRUE)
+pok_test1 <- subset(pokemon1, sample_pok1 == FALSE)
+```
+
+## Data Factor
+
+```{r factordata, echo= FALSE}
+pok_train1$Is_Legendary <- as.factor(pok_train1$Is_Legendary)
+pok_test1$Is_Legendary <- as.factor(pok_test1$Is_Legendary)
+str(pok_train1)
+str(pok_test1)
+```
+
+
+
+## Logistic regression
+
+Building logistic regression models for pokemon dataset. Total, Attack and Generation are significant variables in deciding whether a pokemon is legendary or not.
+```{r logregression, echo =FALSE}
+pok_mlg <- glm(Is_Legendary ~ .-Speed, data=pok_train1,family = "binomial")
+summary(pok_mlg)
+```
+
+
+Finding the error and accuracy of the model. The logistic regression model accuracy is 99.7%
+Logistic Regression model is the best model to see if the pokemon is legendary or not.
+```{r Logisticmodelaccuracy, echo=FALSE}
+pok_prediction <- predict(pok_mlg, newdata = pok_test1, type = "response")
+print(paste('Accuracy of pokemon logistic model is:', paste0(round(max(pok_prediction),3)*100,"%")))
+```
+
+## Logistic Regression Assumptions
+
+```{r assumptions, echo=FALSE}
+# Fit the logistic regression model
+pok_model <- glm(Is_Legendary ~. -Name - Type - Generation -Speed, data = pokemon, 
+               family = binomial)
+pok_probabilities <- predict(pok_model, type = "response")
+pok_predicted.classes <- ifelse(pok_probabilities > 0.5, "pos", "neg")
+head(pok_predicted.classes)
+```
+
+Linearity assumption. Taking only numeric columns from the original data set and binding the logit values to the data and then creating a scatterplot. Defense, HP, Sp.atk, Sp.def, Speed and Total have a smoother scatter plot.
+```{r linearity assumption, echo= FALSE}
+pokdata <- pokemon %>%
+  dplyr::select_if(is.numeric) 
+pokemon_predictors <- colnames(pokdata)
+# Bind the logit and tidying the data for plot
+pokdata <- pokdata %>%
+  mutate(pok_logit = log(pok_probabilities/(1-pok_probabilities))) %>%
+  gather(key = "pok_predictors", value = "predictor.value", -pok_logit)
+
+theme_set(theme_classic())
+
+ggplot(pokdata, aes(pok_logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_wrap(~pok_predictors, scales = "free_y")
+```
+
+There is collinearity in pokemon dataset. Total has value of VIF that exceeds 5.
+```{r multicollinearity, echo=FALSE}
+car::vif(pok_model)
+```
+
+
+## Random Forest
+
+Building Random Forest models for pokemon datasets.
+```{r randomforrest, echo=FALSE}
+pok_random <- randomForest(Is_Legendary ~.-Speed, data = pok_train1)
+```
+
+The accuracy rate of random forest model for pokemon dataset is (143+7)/160 = 93.8%.
+```{r randommodelaccuracy, echo=FALSE}
+pok_randompred <- predict(pok_random, pok_test1, type = "class")
+table(pok_randompred, pok_test1$Is_Legendary)
+```
+
+## Decision Tree Model
+
+Building decision tree models for pokemon dataset.
+```{r decisiontree, echo=FALSE}
+pok_decision <- rpart(Is_Legendary ~. -Speed, data = pok_train1, method="class")
+```
+
+The accuracy rate of decison tree model for pokemon is (69+8)/83 = 91.3%.
+```{r decisiontreeaccuracy, echo=FALSE}
+pok_decisionpred <- predict(pok_decision, pok_test1, type = "class")
+table(pok_decisionpred, pok_test1$Is_Legendary)
+```
+
+
+
+# Data analysis
+We used `r cite_r("r-references.bib")` for all our analyses.
+
+
+# Results
+We built multiple models to classify our pokemons based on whether they are legendary or not. We built Linear regression model to check the variables influencing the attack and were able to predict all pokemon with a zero error. Out of the three models built (Logistic regression, Decision Tree and Random Forest) The Logistic regression model yield the maximum accuracy rate of almost close to 100% and is the best model fit.
+
+# Discussion
+Different studies have been performed on this dataset with researchers using different models and a variety of variable to classify the pokemons. There might be certain limitation in this study that can affect to classify a pokemon.
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
