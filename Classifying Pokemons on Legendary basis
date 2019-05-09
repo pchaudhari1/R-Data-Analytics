@@ -1,20 +1,13 @@
 ---
-title             : "AnLy 500 Final Project"
-shorttitle        : "Pokemon"
+title             : "Pokemon Classification"
 
 author: 
   - name          : "Pratik Chaudhari"
     affiliation   : ""
-    corresponding : yes    # Define only one corresponding author
-    address       : "326 Market Street, Harrisburg, PA 17101"
-    email         : "pchaudhari@my.harrisburgu.edu"
 
-affiliation:
-  - id            : "247910"
-    institution   : "Harrisburg University of Science and Technology"
 
 authornote: |
-  This document contains the ANLY 500 Final Project Scripts for Pokemon data analysis.
+  This document contains the Project Scripts for Pokemon data analysis.
 
 abstract: |
 
