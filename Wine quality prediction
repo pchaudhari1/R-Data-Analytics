@@ -69,7 +69,7 @@ knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
 
 We start by loading the required packages and the red wine and white wine quality dataset.
 ```{r loadData, echo=FALSE}
-red<-read.csv("/Users/one/Desktop/Analytics Method 502//Project/winequality-red.csv",sep=";", header=TRUE)
+red<-read.csv("..../Project/winequality-red.csv",sep=";", header=TRUE)
 white <- read.csv("/Users/one/Desktop/Analytics Method 502//Project/winequality-white.csv",sep=";", header=TRUE)
 ```
 
